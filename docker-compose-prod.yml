@@ -6,8 +6,8 @@ services:
     volumes:
       - ./back:/usr/src/app
     ports:
-      - 3000:3000
-      - 3001:3001
+      - 27890:3000
+      - 27891:3001
     command: sh -c "npm install && npx nodemon main.js"
     depends_on:
       - mysql
@@ -31,18 +31,6 @@ services:
       - 8080:8080
     depends_on:
       - mysql
-
-  vuetify:
-    image: node:18
-    container_name: vuetify-app
-    working_dir: /usr/src/app
-    volumes:
-      - ./front/vuetify-project:/usr/src/app
-    ports:
-      - 4000:3000
-    command: sh -c "npm install && npm run dev -- --host"
-    depends_on:
-      - node
 
 volumes:
   mysql-data:
