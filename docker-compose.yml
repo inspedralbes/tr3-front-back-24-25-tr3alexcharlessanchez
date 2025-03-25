@@ -1,14 +1,18 @@
 services:
   node:
-    image: node:18
-    container_name: node-app
+    image: nikolaik/python-nodejs
+    container_name: node
+    env_file:
+      - back/.env
     working_dir: /usr/src/app
     volumes:
       - ./back:/usr/src/app
     ports:
       - 3000:3000
       - 3001:3001
-    command: sh -c "npm install && npx nodemon main.js"
+      - 3002:3002
+      - 3003:3003
+    command: sh -c "npm install && pip install -r ./microserveis/python/requirements.txt && npx nodemon main.js"
     depends_on:
       - mysql
 
@@ -18,7 +22,7 @@ services:
     env_file:
       - back/.env
     environment:
-      - MYSQL_DATABASE=DEFCON1  
+      - MYSQL_DATABASE=a23alechasan_defcon1 
     ports:
       - 3306:3306
     volumes:
@@ -34,7 +38,7 @@ services:
 
   vuetify:
     image: node:18
-    container_name: vuetify-app
+    container_name: vuetify
     working_dir: /usr/src/app
     volumes:
       - ./front/vuetify-project:/usr/src/app
@@ -42,7 +46,7 @@ services:
       - 4000:3000
     command: sh -c "npm install && npm run dev -- --host"
     depends_on:
-      - node
+      - node  
 
 volumes:
   mysql-data:

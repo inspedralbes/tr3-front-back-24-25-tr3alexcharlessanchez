@@ -8,19 +8,29 @@ app.use(bodyParser.json());
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const fs = require('fs');
+const cors = require('cors');
+app.use(cors());
+app.use(express.json({ limit: '10mb', type: 'application/json', charset: 'utf-8' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(bodyParser.json({ type: 'application/json', charset: 'utf-8' }));
+const sharp = require('sharp');
+
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 const portLocal = process.env.PORT_NODE_SEQUELIZE_LOCAL;
-const portProd = process.env.PORT_NODE_SEQUELIZE_PODUCCIO;
+const portProd = process.env.PORT_NODE_SEQUELIZE_PRODUCCIO;
+const hostLocal = "mysql"
+const hostProd = "localhost"
 
 const port = portLocal;
+const host = hostLocal;
 
 const sequelize = new Sequelize(
     process.env.MYSQL_DATABASE,
     process.env.MYSQL_USER,
     process.env.MYSQL_PASSWORD,
     {
-        host: process.env.MYSQL_HOST || 'mysql',
+        host: host || 'mysql',
         dialect: 'mysql',
         logging: false,
     }
@@ -41,9 +51,6 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
-        if (file.mimetype !== 'image/png') {
-            return cb(new Error('Només es permeten imatges PNG'));
-        }
         cb(null, true);
     }
 });
@@ -58,10 +65,17 @@ const Personatge = definePersonatge(sequelize);
 
 Jugador.hasMany(Partida, { foreignKey: 'jugador1', as: 'partidesComJugador1' });
 Jugador.hasMany(Partida, { foreignKey: 'jugador2', as: 'partidesComJugador2' });
+Personatge.hasMany(Partida, { foreignKey: 'idPersonatgeGuanyador', as: 'partidesGuanyades' });
+Personatge.hasMany(Partida, { foreignKey: 'idPersonatgePerdedor', as: 'partidesPerdudes' });
 Partida.belongsTo(Jugador, { foreignKey: 'jugador1', as: 'Jugador1' });
 Partida.belongsTo(Jugador, { foreignKey: 'jugador2', as: 'Jugador2' });
+Partida.belongsTo(Personatge, { foreignKey: 'idPersonatgeGuanyador', as: 'PersonatgeGuanyador' });
+Partida.belongsTo(Personatge, { foreignKey: 'idPersonatgePerdedor', as: 'PersonatgePerdedor' });
+
 
 module.exports = { sequelize, Jugador, Partida, Personatge };
+
+app.use('/sprites', express.static(path.join(__dirname, 'sprites')));
 
 app.get('/jugadors', (req, res) => {
     Jugador.findAll()
@@ -122,6 +136,26 @@ app.post('/jugador', async (req, res) => {
     }
 });
 
+app.delete('/jugador', async (req, res) => {
+    try {
+        const { idUsuari } = req.body;
+        if (!idUsuari){
+            return res.status(400).json({ error: 'ID del jugador és obligatori' });
+        } else {
+            const jugador = await Jugador.findByPk(idUsuari);
+            if (!jugador) {
+                return res.status(404).json({ error: 'Jugador no trobat' });
+            }
+            await jugador.destroy();
+            res.status(200).json({ message: 'Jugador eliminat' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error en eliminar el jugador' });
+    }
+});
+
+
 app.get('/personatge', async (req, res) => {
     try {
         const personatges = await Personatge.findAll();
@@ -134,9 +168,8 @@ app.get('/personatge', async (req, res) => {
 
 app.post('/personatge', upload.single('imatge'), async (req, res) => {
     try {
-        const { nom, velocitat, forçaExplosions, bombesSimultanies } = req.body;
-
-        if (!nom || !velocitat || !forçaExplosions || !bombesSimultanies) {
+        const { nom, velocitat, forcaExplosions, bombesSimultanies } = req.body;
+        if (!nom || !velocitat || !forcaExplosions || !bombesSimultanies) {
             return res.status(400).json({ error: 'Falten camps obligatoris' });
         }
 
@@ -145,10 +178,30 @@ app.post('/personatge', upload.single('imatge'), async (req, res) => {
             return res.status(409).json({ error: 'El nom ja existeix' });
         }
 
-        const nouPersonatge = await Personatge.create({ nom, velocitat, forçaExplosions, bombesSimultanies });
+        const nouPersonatge = await Personatge.create({ 
+            nom, 
+            velocitat, 
+            forcaExplosions, 
+            bombesSimultanies 
+        });
 
-        const imatgePath = path.join('./sprites', `${nouPersonatge.id}.png`);
-        fs.renameSync(req.file.path, imatgePath);
+        const spritesDir = path.join(__dirname, 'sprites');
+        const targetPath = path.join(spritesDir, `${nouPersonatge.idPersonatge}.png`);
+
+        if (req.file) {
+            await sharp(req.file.path)
+                .png()
+                .toFile(targetPath, (err, info) => {
+                    if (err) {
+                        console.error("Error en convertir la imatge:", err);
+                        return res.status(500).json({ error: 'Error en convertir la imatge' });
+                    }
+                    fs.unlinkSync(req.file.path);
+                });
+        } else {
+            const defaultImage = path.join(spritesDir, 'imatgeError.png');
+            fs.copyFileSync(defaultImage, targetPath); 
+        }
 
         res.status(201).json(nouPersonatge);
     } catch (error) {
@@ -159,34 +212,38 @@ app.post('/personatge', upload.single('imatge'), async (req, res) => {
 
 app.put('/personatge', upload.single('imatge'), async (req, res) => {
     try {
-        const { id, nom, velocitat, forçaExplosions, bombesSimultanies } = req.body;
+        const { idPersonatge, nom, velocitat, forcaExplosions, bombesSimultanies } = req.body;
 
-        if (!id) {
-            return res.status(400).json({ error: 'ID del personatge és obligatori' });
+        if (!idPersonatge || !nom || !velocitat || !forcaExplosions || !bombesSimultanies) {
+            return res.status(400).json({ error: 'Falten camps obligatoris' });
         }
 
-        const personatge = await Personatge.findByPk(id);
-
+        const personatge = await Personatge.findByPk(idPersonatge);
         if (!personatge) {
             return res.status(404).json({ error: 'Personatge no trobat' });
         }
 
+        personatge.nom = nom;
+        personatge.velocitat = velocitat;
+        personatge.forcaExplosions = forcaExplosions;
+        personatge.bombesSimultanies = bombesSimultanies;
+
+        await personatge.save();
+
+        const spritesDir = path.join(__dirname, 'sprites');
+        const targetPath = path.join(spritesDir, `${personatge.idPersonatge}.png`);
+
         if (req.file) {
-            const oldImagePath = path.join('./sprites', `${id}.png`);
-            if (fs.existsSync(oldImagePath)) {
-                fs.unlinkSync(oldImagePath);
-            }
-
-            const newImagePath = path.join('./sprites', `${id}.png`);
-            fs.renameSync(req.file.path, newImagePath);
+            await sharp(req.file.path)
+                .png()
+                .toFile(targetPath, (err, info) => {
+                    if (err) {
+                        console.error("Error en convertir la imatge:", err);
+                        return res.status(500).json({ error: 'Error en convertir la imatge' });
+                    }
+                    fs.unlinkSync(req.file.path);
+                });
         }
-
-        await personatge.update({
-            nom: nom ?? personatge.nom,
-            velocitat: velocitat ?? personatge.velocitat,
-            forçaExplosions: forçaExplosions ?? personatge.forçaExplosions,
-            bombesSimultanies: bombesSimultanies ?? personatge.bombesSimultanies,
-        });
 
         res.status(200).json(personatge);
     } catch (error) {
@@ -208,8 +265,8 @@ app.get('/partida', async (req, res) => {
 
 app.get('/partida', async (req, res) => {
     try {
-        const { id } = req.query;
-        const partida = await Partida.findByPk(id);
+        const { idPartida } = req.body;
+        const partida = await Partida.findByPk(idPartida);
         if (!partida) {
             return res.status(404).json({ error: 'Partida no trobada' });
         }
@@ -222,13 +279,15 @@ app.get('/partida', async (req, res) => {
 
 app.post('/partida', async (req, res) => {
     try {
-        const { jugador1, jugador2, codi_partida } = req.body;
+        const { jugador1, jugador2, duracio, idGuanyador, idPersonatgeGuanyador, idPersonatgePerdedor} = req.body;
 
-        if (!jugador1 || !jugador2 || !codi_partida) {
+        if (!jugador1 || !jugador2 || !duracio || !idGuanyador || !idPersonatgeGuanyador || !idPersonatgePerdedor) {
             return res.status(400).json({ error: 'Falten camps obligatoris' });
         }
 
-        const novaPartida = await Partida.create({ jugador1, jugador2, codi_partida });
+        const data = new Date();
+
+        const novaPartida = await Partida.create({ data, duracio, jugador1, jugador2, idGuanyador, idPersonatgeGuanyador, idPersonatgePerdedor });
 
         res.status(201).json(novaPartida);
     } catch (error) {
@@ -237,11 +296,116 @@ app.post('/partida', async (req, res) => {
     }
 });
 
-// fer endpoints per guanyar (un put de partida per 
-// posar el guanyador i acabar la partida i tambe posar-li la victoria al guanyador
+app.get('/seguentPartida', async (req, res) => {
+    try {
+        const lastPartida = await Partida.findOne({
+            order: [['idPartida', 'DESC']]
+        });
 
-// endpoints per kills i morts
+        const nextId = lastPartida ? lastPartida.idPartida + 1 : 1;
 
+        res.send(nextId.toString());
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error en obtenir el següent ID de partida' });
+    }
+});
+
+app.put('/guanyar' , async (req, res) => {
+    try {
+        const { idJugador } = req.body;
+
+        if (!idJugador) {
+            return res.status(400).json({ error: 'Falten camps obligatoris' });
+        }
+
+        const jugador = await Jugador.findByPk(idJugador);
+        if (!jugador) {
+            return res.status(404).json({ error: 'Jugador no trobat' });
+        }
+
+        jugador.victories += 1;
+
+        await jugador.save();
+
+        res.status(200).json(jugador);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error en actualitzar la partida' });
+    }
+});
+
+app.put('/perdre' , async (req, res) => {
+    try {
+        const { idJugador } = req.body;
+
+        if (!idJugador) {
+            return res.status(400).json({ error: 'Falten camps obligatoris' });
+        }
+
+        const jugador = await Jugador.findByPk(idJugador);
+        if (!jugador) {
+            return res.status(404).json({ error: 'Jugador no trobat' });
+        }
+
+        jugador.derrotes += 1;
+
+        await jugador.save();
+
+        res.status(200).json(jugador);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error en actualitzar la partida' });
+    }
+});
+
+app.put('/kill' , async (req, res) => {
+    try {
+        const { idJugador } = req.body;
+
+        if (!idJugador) {
+            return res.status(400).json({ error: 'Falten camps obligatoris' });
+        }
+
+        const jugador = await Jugador.findByPk(idJugador);
+        if (!jugador) {
+            return res.status(404).json({ error: 'Jugador no trobat' });
+        }
+
+        jugador.kills += 1;
+
+        await jugador.save();
+
+        res.status(200).json(jugador);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error en actualitzar la partida' });
+    }
+});
+
+app.put('/mort' , async (req, res) => {
+    try {
+        const { idJugador } = req.body;
+
+        if (!idJugador) {
+            return res.status(400).json({ error: 'Falten camps obligatoris' });
+        }
+
+        const jugador = await Jugador.findByPk(idJugador);
+        if (!jugador) {
+            return res.status(404).json({ error: 'Jugador no trobat' });
+        }
+
+        jugador.morts += 1;
+
+        await jugador.save();
+
+        res.status(200).json(jugador);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error en actualitzar la partida' });
+    }
+});
 
 process.on('message', (message) => {
     if (message.action === 'start') {

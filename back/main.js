@@ -9,8 +9,10 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 const contrassenya = process.env.CONTRASSENYA_MICROSERVEIS;
 const { Server } = require('socket.io');
 const portLocal = process.env.PORT_NODE_MAIN_LOCAL;
-const portProd = process.env.PORT_NODE_MAIN_PODUCCIO;
+const portProd = process.env.PORT_NODE_MAIN_PRODUCCIO;
 const { spawn } = require('child_process');
+
+const port = portLocal;
 
 const app = express();
 app.use(cors());
@@ -153,8 +155,8 @@ app.get('/', (req, res) => {
     res.sendFile(`${__dirname}/index.html`);
 });
 
-server.listen(portLocal, () => {
-    console.log(`Main corrent al port ${portLocal}`);
+server.listen(port, () => {
+    console.log(`Main corrent al port ${port}`);
     directoris.forEach(servei => {
         if (!processos[servei]) {
             processos[servei] = { nom: servei, referencia: null, actiu: false };

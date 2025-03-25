@@ -11,6 +11,10 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: false,
     },
+    duracio: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
     jugador1: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -19,16 +23,17 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    codi_partida: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
     idGuanyador: {
       type: DataTypes.INTEGER,
+      allowNull: false,
     },
-    acabada: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
+    idPersonatgeGuanyador: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    idPersonatgePerdedor: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
   }, {
     tableName: 'partides',

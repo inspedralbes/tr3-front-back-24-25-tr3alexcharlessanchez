@@ -17,4 +17,6 @@ const app = createApp(App)
 
 registerPlugins(app)
 
+console.log(process.env)
+
 app.mount('#app')

@@ -16,7 +16,7 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    forçaExplosions: {
+    forcaExplosions: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
