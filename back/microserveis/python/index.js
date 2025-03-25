@@ -23,19 +23,73 @@ const url = urlLocal;
 const portSequelize = portSequelizeLocal;
 const portMongo = portMongoLocal;
 
+console.log(`${url}:${portSequelize}/partides`);
+
 app.use('/grafics', express.static(path.join(__dirname, 'grafics')));
 
 
-app.get('/', (req, res) => {
-    const jugadorsJSON = JSON.stringify(jugadors);
-    spawn('python', ['./microserveis/python/scripts/winrate.py', jugadorsJSON], { stdio: 'inherit' });
-    res.send("Hola")
+app.get('/winrate', async (req, res) => {
+    try {
+        const partides = await getPartides();
+        console.log(partides);
+        const partidesJSON = JSON.stringify(partides);
+        const personatges = await getPersonatges();
+        console.log(personatges);
+        const personatgesJSON = JSON.stringify(personatges);
+
+        spawn('python', ['./microserveis/python/scripts/winrate.py', partidesJSON, personatgesJSON], { stdio: 'inherit' });
+
+        res.send("Grafic generat correctament");
+    } catch (error) {
+        console.error("Error obtenint les partides:", error);
+        res.status(500).send("Error obtenint les partides");
+    }
+});
+
+app.get('/podium', async (req, res) => {
+    try {
+        const jugadors = await getJugadors();
+        console.log(jugadors);
+        const jugadorsJSON = JSON.stringify(jugadors);
+
+        spawn('python', ['./microserveis/python/scripts/podium.py', jugadorsJSON], { stdio: 'inherit' });
+
+        res.send("Grafic generat correctament");
+    } catch (error) {
+        console.error("Error obtenint els jugadors:", error);
+        res.status(500).send("Error obtenint els jugadors");
+    }
 }
 );
 
+async function getJugadors() {
+    const jugadors = await axios.get(`${url}:${portSequelize}/jugadors`);
+    return jugadors.data;
+}
+
 async function getPartides() {
-    const partides = await axios.get(`http://${url}:${portSequelize}/partides`);
+    const partides = await axios.get(`${url}:${portSequelize}/partida`);
     return partides.data;
+}
+
+async function getPersonatges() {
+    const personatges = await axios.get(`${url}:${portSequelize}/personatge`);
+    return personatges.data;
+}
+
+async function getNumeroBombesPartida() {
+    const numeroBombesPartida = await axios.get(`${url}:${portMongo}/numeroBombesPartida`);
+    return numeroBombesPartida.data;
+}
+
+async function getDistanciaPartida() {
+    const distanciaPartida = await axios.get(`${url}:${portMongo}/distanciaPartida`);
+    return distanciaPartida.data;
+}
+
+async function getPowerupsJugadorPartida() {
+    const powerupsJugadorPartida = await axios.get(`${url}:${portMongo}/powerupsJugadorPartida`);
+    return powerupsJugadorPartida.data;
 }
 
 
