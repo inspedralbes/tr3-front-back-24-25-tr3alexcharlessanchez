@@ -18,10 +18,10 @@ const portSequelizeProd = process.env.PORT_NODE_SEQUELIZE_PRODUCCIO;
 const portMongoLocal = process.env.PORT_NODE_MONGO_LOCAL;
 const portMongoProd = process.env.PORT_NODE_MONGO_PRODUCCIO;
 
-const port = portLocal;
-const url = urlLocal;
-const portSequelize = portSequelizeLocal;
-const portMongo = portMongoLocal;
+const port = portProd;
+const url = urlProd;
+const portSequelize = portSequelizeProd;
+const portMongo = portMongoProd;
 
 console.log(`${url}:${portSequelize}/partides`);
 
@@ -37,7 +37,7 @@ app.get('/winrate', async (req, res) => {
         console.log(personatges);
         const personatgesJSON = JSON.stringify(personatges);
 
-        spawn('python', ['./microserveis/python/scripts/winrate.py', partidesJSON, personatgesJSON], { stdio: 'inherit' });
+        spawn('python3', ['./microserveis/python/scripts/winrate.py', partidesJSON, personatgesJSON], { stdio: 'inherit' });
 
         res.send("Grafic generat correctament");
     } catch (error) {
@@ -52,7 +52,7 @@ app.get('/podium', async (req, res) => {
         console.log(jugadors);
         const jugadorsJSON = JSON.stringify(jugadors);
 
-        spawn('python', ['./microserveis/python/scripts/podium.py', jugadorsJSON], { stdio: 'inherit' });
+        spawn('python3', ['./microserveis/python/scripts/podium.py', jugadorsJSON], { stdio: 'inherit' });
 
         res.send("Grafic generat correctament");
     } catch (error) {

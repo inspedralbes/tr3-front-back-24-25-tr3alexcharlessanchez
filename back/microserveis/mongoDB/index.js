@@ -14,7 +14,7 @@ const user = process.env.MONGO_USER;
 const passsowrd = process.env.MONGO_PASSWORD;
 const cluster = process.env.MONGO_CLUSTER;
 
-const port = portLocal;
+const port = portProd;
 
 const numeroBombesPartidaSchema = new mongoose.Schema({
     idPartida: { type: Number, required: true },
@@ -26,9 +26,8 @@ const distanciaPartidaSchema = new mongoose.Schema({
     distancia: { type: Number, required: true }
 });
 
-const powerupsJugadorPartidaSchema = new mongoose.Schema({
+const powerupsPartidaSchema = new mongoose.Schema({
     idPartida: { type: Number, required: true },
-    idJugador: { type: Number, required: true },
     powerups: { type: Number, required: true }
 });
 
@@ -36,7 +35,7 @@ const numeroBombesPartida = mongoose.model('numeroBombesPartida', numeroBombesPa
 
 const distanciaPartida = mongoose.model('distanciaPartida', distanciaPartidaSchema);
 
-const powerupsJugadorPartida = mongoose.model('powerupsJugadorPartida', powerupsJugadorPartidaSchema);
+const powerupsPartida = mongoose.model('powerupsPartida', powerupsPartidaSchema);
 
 
 
@@ -98,10 +97,10 @@ app.post('/distanciaPartida', (req, res) => {
 }
 );
 
-app.get('/powerupsJugadorPartida', async (req, res) => {
+app.get('/powerupsPartida', async (req, res) => {
     try {
-        const powerupsJugadorPartidaActualitzats = await powerupsJugadorPartida.find().lean();
-        res.json(powerupsJugadorPartidaActualitzats);
+        const powerupsPartidaActualitzats = await powerupsPartida.find().lean();
+        res.json(powerupsPartidaActualitzats);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: err });
@@ -109,16 +108,16 @@ app.get('/powerupsJugadorPartida', async (req, res) => {
 }
 );
 
-app.post('/powerupsJugadorPartida', (req, res) => {
-    const {idPartida, idJugador, powerups} = req.body;
+app.post('/powerupsPartida', (req, res) => {
+    const {idPartida, powerups} = req.body;
     try {
-        const newPowerupsJugadorPartida = new powerupsJugadorPartida({idPartida, idJugador, powerups});
-        newPowerupsJugadorPartida.save().then(() => {
-            res.send('Powerups per jugador per partida guardats correctament');
+        const newPowerupsPartida = new powerupsPartida({idPartida, powerups});
+        newPowerupsPartida.save().then(() => {
+            res.send('Powerups per partida guardats correctament');
         }
         ).catch(err => {
             console.error(err);
-            res.status(500).send('Error al guardar els powerups per jugador per partida');
+            res.status(500).send('Error al guardar els powerups per partida');
         }
         );
     } catch (err) {

@@ -3,8 +3,8 @@ const urlProd = import.meta.env.VITE_APP_URL_PRODUCCIO;
 const portLocal = import.meta.env.VITE_APP_PORT_NODE_SEQUELIZE_LOCAL;
 const portProd = import.meta.env.VITE_APP_PORT_NODE_SEQUELIZE_PROD;
 
-const url = urlLocal;
-const port = portLocal;
+const url = urlProd;
+const port = portProd;
 
 // GET /jugadors
 async function getJugadors() {

@@ -12,7 +12,7 @@ const portLocal = process.env.PORT_NODE_MAIN_LOCAL;
 const portProd = process.env.PORT_NODE_MAIN_PRODUCCIO;
 const { spawn } = require('child_process');
 
-const port = portLocal;
+const port = portProd;
 
 const app = express();
 app.use(cors());

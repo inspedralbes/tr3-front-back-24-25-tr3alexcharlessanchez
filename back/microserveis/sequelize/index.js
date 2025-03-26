@@ -22,8 +22,8 @@ const portProd = process.env.PORT_NODE_SEQUELIZE_PRODUCCIO;
 const hostLocal = "mysql"
 const hostProd = "localhost"
 
-const port = portLocal;
-const host = hostLocal;
+const port = portProd;
+const host = hostProd;
 
 const sequelize = new Sequelize(
     process.env.MYSQL_DATABASE,
@@ -281,7 +281,7 @@ app.post('/partida', async (req, res) => {
     try {
         const { jugador1, jugador2, duracio, idGuanyador, idPersonatgeGuanyador, idPersonatgePerdedor} = req.body;
 
-        if (!jugador1 || !jugador2 || !duracio || !idGuanyador || !idPersonatgeGuanyador || !idPersonatgePerdedor) {
+        if (jugador1 === undefined || jugador2 === undefined || duracio === undefined || idGuanyador === undefined || idPersonatgeGuanyador === undefined || idPersonatgePerdedor === undefined) {
             return res.status(400).json({ error: 'Falten camps obligatoris' });
         }
 
