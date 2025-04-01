@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ca">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test de Microserveis</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // Funció d'autenticació
+        function autenticar() {
+            const contrassenya = document.getElementById('contrassenya').value;
+
+            // Demanar els processos només si la contrassenya és correcta
+            fetch(`/processos?contrassenya=${contrassenya}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No estàs autenticat');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    mostrarProcessos(data);
+                })
+                .catch(error => {
+                    document.getElementById('resultat').innerText = error.message;
+                });
+        }
+
+        // Funció per mostrar els serveis disponibles
+        function mostrarProcessos(processos) {
+            const divProcessos = document.getElementById('processos');
+            divProcessos.innerHTML = ''; // Netejar el div abans de mostrar els nous botons
+
+            processos.forEach(servei => {
+                const divServei = document.createElement('div');
+                divServei.innerHTML = `<strong>${servei.nom}</strong> (Actiu: ${servei.actiu})`;
+
+                const buttonEncendre = document.createElement('button');
+                buttonEncendre.innerText = `Encendre ${servei.nom}`;
+                buttonEncendre.onclick = () => {
+                    socket.emit('encendre', document.getElementById('contrassenya').value, servei.nom);
+                };
+
+                const buttonAturar = document.createElement('button');
+                buttonAturar.innerText = `Aturar ${servei.nom}`;
+                buttonAturar.onclick = () => {
+                    socket.emit('parar', document.getElementById('contrassenya').value, servei.nom);
+                };
+
+                const buttonLogs = document.createElement('button');
+                buttonLogs.innerText = `Veure logs ${servei.nom}`;
+                buttonLogs.onclick = () => {
+                    socket.emit('getLog', document.getElementById('contrassenya').value, servei.nom);
+                };
+
+                divServei.appendChild(buttonEncendre);
+                divServei.appendChild(buttonAturar);
+                divServei.appendChild(buttonLogs);
+                divProcessos.appendChild(divServei);
+            });
+        }
+
+        // Gestionar la resposta del servidor
+        socket.on('resposta', function (data) {
+            document.getElementById('resultat').innerText = data;
+        });
+
+        socket.on('logs', function (data) {
+            console.log("Logs rebuts al client:", data); // Comprovar que els logs s'estan rebent
+            document.getElementById('resultat').innerText = JSON.stringify(data, null, 2);
+        });
+    </script>
+</head>
+
+<body>
+    <h1>Prova de Microserveis</h1>
+    <label for="contrassenya">Contrassenya:</label>
+    <input type="password" id="contrassenya" required>
+    <button onclick="autenticar()">Entrar</button>
+    <br><br>
+    <div id="processos"></div>
+    <h3>Resultat:</h3>
+    <pre id="resultat"></pre>
+</body>
+
+</html>
