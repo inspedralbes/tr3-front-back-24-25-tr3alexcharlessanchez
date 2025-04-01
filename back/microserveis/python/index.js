@@ -31,10 +31,8 @@ app.use('/grafics', express.static(path.join(__dirname, 'grafics')));
 app.get('/winrate', async (req, res) => {
     try {
         const partides = await getPartides();
-        console.log(partides);
         const partidesJSON = JSON.stringify(partides);
         const personatges = await getPersonatges();
-        console.log(personatges);
         const personatgesJSON = JSON.stringify(personatges);
 
         spawn('python3', ['./microserveis/python/scripts/winrate.py', partidesJSON, personatgesJSON], { stdio: 'inherit' });
@@ -49,7 +47,6 @@ app.get('/winrate', async (req, res) => {
 app.get('/podium', async (req, res) => {
     try {
         const jugadors = await getJugadors();
-        console.log(jugadors);
         const jugadorsJSON = JSON.stringify(jugadors);
 
         spawn('python3', ['./microserveis/python/scripts/podium.py', jugadorsJSON], { stdio: 'inherit' });
@@ -61,6 +58,27 @@ app.get('/podium', async (req, res) => {
     }
 }
 );
+
+app.get('/mitjanes', async (req, res) => {
+    try {
+        const powerupsPartida = await getPowerupsPartida();
+        const powerupsPartidaJSON = JSON.stringify(powerupsPartida);
+        const distanciaPartida = await getDistanciaPartida();
+        const distanciaPartidaJSON = JSON.stringify(distanciaPartida);
+        const numeroBombesPartida = await getNumeroBombesPartida();
+        const numeroBombesPartidaJSON = JSON.stringify(numeroBombesPartida);
+        const partides = await getPartides();
+        const partidesJSON = JSON.stringify(partides);
+
+        spawn('python3', ['./microserveis/python/scripts/mitjanes.py', powerupsPartidaJSON, distanciaPartidaJSON, numeroBombesPartidaJSON, partidesJSON], { stdio: 'inherit' });
+
+        res.send("Grafic generat correctament");
+    } catch (error) {
+        console.error("Error obtenint les dades de les partides:", error);
+        res.status(500).send("Error obtenint les dades de les partides");
+    }
+});
+
 
 async function getJugadors() {
     const jugadors = await axios.get(`${url}:${portSequelize}/jugadors`);
@@ -87,9 +105,9 @@ async function getDistanciaPartida() {
     return distanciaPartida.data;
 }
 
-async function getPowerupsJugadorPartida() {
-    const powerupsJugadorPartida = await axios.get(`${url}:${portMongo}/powerupsJugadorPartida`);
-    return powerupsJugadorPartida.data;
+async function getPowerupsPartida() {
+    const powerupsPartida = await axios.get(`${url}:${portMongo}/powerupsPartida`);
+    return powerupsPartida.data;
 }
 
 

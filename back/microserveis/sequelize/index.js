@@ -76,6 +76,7 @@ Partida.belongsTo(Personatge, { foreignKey: 'idPersonatgePerdedor', as: 'Persona
 module.exports = { sequelize, Jugador, Partida, Personatge };
 
 app.use('/sprites', express.static(path.join(__dirname, 'sprites')));
+app.use('/builds', express.static(path.join(__dirname, 'builds')));
 
 app.get('/jugadors', (req, res) => {
     Jugador.findAll()
